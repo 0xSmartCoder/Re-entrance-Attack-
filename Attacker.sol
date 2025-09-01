@@ -22,4 +22,4 @@ contract VulnerableVault {
 }
 
 
-Problem: external call happens before balances[msg.sender] = 0. If the receiver re-enter he can call  withdrawal agai.n
+//Problem: external call happens before balances[msg.sender] = 0. If the receiver re-enter he can call  withdrawal again.
