@@ -1,19 +1,25 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-contract Victim {
+contract VulnerableVault {
     mapping(address => uint) public balances;
 
-    function deposit() public payable {
+    function deposit() external payable {
         balances[msg.sender] += msg.value;
     }
 
-    function withdraw(uint _amount) public {
-        require(balances[msg.sender] >= _amount, "Not enough balance");
+    // Vulnerable withdrawal — updates state AFTER sending funds
 
-        // ❌ External call before state update
-        (bool sent, ) = msg.sender.call{value: _amount}("");
-        require(sent, "Failed to send");
-
-        balances[msg.sender] -= _amount;
+    function withdrawAll() external {
+        uint bal = balances[msg.sender];
+        require(bal > 0, "No balance");
+        // external call FIRST (vulnerable)
+        (bool ok,) = msg.sender.call{value: bal}("");
+        require(ok, "Transfer failed");
+        // state updated AFTER external call — BAD
+        balances[msg.sender] = 0;
     }
 }
+
+
+//Problem: external call happens before balances[msg.sender] = 0. If the receiver re-enter he can call  withdrawal again.
